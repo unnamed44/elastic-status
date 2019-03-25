@@ -1,0 +1,24 @@
+#!/bin/bash
+
+HOST=${1:-elasticsearch}
+PORT=${2:-9200}
+
+HOSTNAME=$(hostname)
+
+echo "$(date +%b' '%d' '%H:%M:%S) ${HOSTNAME} Check exist service [ ${HOST} ]"
+while [[ "$(getent hosts ${HOST})" = "" ]]; do 
+  echo "$(date +%b' '%d' '%H:%M:%S) ${HOSTNAME} Waiting for service ${HOST}"
+  sleep 2
+done
+
+echo "$(date +%b' '%d' '%H:%M:%S) ${HOSTNAME} Service [ ${HOST} ] is exist and ip is [ $(getent hosts ${HOST} | awk '{print $1}') ]"
+
+echo "$(date +%b' '%d' '%H:%M:%S) ${HOSTNAME} Check status [ ${HOST} ]"
+until [[ "$(curl --silent --show-error --fail --retry 2 --connect-timeout 1 --max-time 2 http://${HOST}:${PORT}/_cluster/health | jq -r .status)" = "green" ]] || \
+      [[ "$(curl --silent --show-error --fail --retry 2 --connect-timeout 1 --max-time 2 http://${HOST}:${PORT}/_cluster/health | jq -r .status)" = "yellow" ]];do
+  DATE=$(date +%b' '%d' '%H:%M:%S)
+  echo "${DATE} ${HOSTNAME} The Elasticsearch cluster is status [ $(curl --silent --show-error --fail --retry 2 --connect-timeout 1 --max-time 2 http://${HOST}:${PORT}/_cluster/health | jq -r .status) ]"
+  sleep 2
+done
+
+echo "$(date +%b' '%d' '%H:%M:%S) ${HOSTNAME} The Elasticsearch cluster is status ${HOST} [ $(curl --silent --show-error --fail --retry 2 --connect-timeout 1 --max-time 2 http://${HOST}:${PORT}/_cluster/health | jq -r .status) ]"
